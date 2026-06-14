@@ -24,8 +24,8 @@ final class AppModel {
     /// Live capture preview from CGWindowListCreateImage
     var capturePreviewImage: NSImage?
     
-    /// Toggle for Mode B (NSWindow shield) to allow live enable/disable
-    var isModeB_ProtectionEnabled: Bool = true
+    /// Protection level for Mode B (0 = unprotected, 1 = blacked out, 2 = invisible)
+    var modeBProtectionLevel: ProtectionLevel = .robustInvisible
     
     /// Reference to the main app window for capture operations
     var mainAppWindow: NSWindow?
@@ -66,7 +66,7 @@ enum ProtectionMode: String, CaseIterable {
         case .modeA:
             return "Mode A: Unprotected Baseline"
         case .modeB:
-            return "Mode B: NSWindow Shield"
+            return "Mode B: NSWindow Shield (Robust)"
         case .modeC:
             return "Mode C: DRM Protected Layer"
         }
@@ -77,7 +77,7 @@ enum ProtectionMode: String, CaseIterable {
         case .modeA:
             return "Standard SwiftUI rendering. Content is fully visible in all capture modes (control group)."
         case .modeB:
-            return "NSWindow.sharingType set to .none. Blocks screen recording at WindowServer level."
+            return "Robust NSWindow protection with multi-layer invisibility. Works across all screen sharing apps."
         case .modeC:
             return "AVSampleBufferDisplayLayer with protected media pipeline. GPU-level resistance to capture."
         }
@@ -85,6 +85,35 @@ enum ProtectionMode: String, CaseIterable {
     
     var isProtected: Bool {
         self != .modeA
+    }
+}
+
+/// Protection levels for Mode B - increasingly robust invisibility
+enum ProtectionLevel: Int, CaseIterable {
+    case unprotected = 0
+    case blackedOut = 1
+    case robustInvisible = 2
+    
+    var displayName: String {
+        switch self {
+        case .unprotected:
+            return "Unprotected (Visible)"
+        case .blackedOut:
+            return "Blocked (Shows Black)"
+        case .robustInvisible:
+            return "Invisible (Complete Protection)"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .unprotected:
+            return "Content fully visible - control baseline"
+        case .blackedOut:
+            return "Appears as black rectangle in captures"
+        case .robustInvisible:
+            return "Completely invisible - won't appear in any screen share"
+        }
     }
 }
 

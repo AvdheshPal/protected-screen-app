@@ -44,33 +44,67 @@ class CaptureTestHarness {
     }
     
     /// Test a specific mode with different capture types
+    /// For Mode B, also tests each protection level separately
     private func testMode(mode: ProtectionMode, window: NSWindow) -> [CaptureTestResult] {
         var modeResults: [CaptureTestResult] = []
         
-        // Simulate tab share (doesn't directly capture the app window, but included for completeness)
-        // In real scenario, this would use ScreenCaptureKit APIs that browsers use
-        let tabCaptureResult = captureAndAnalyze(
-            mode: mode,
-            captureType: "tab_share",
-            window: window
-        )
-        modeResults.append(tabCaptureResult)
-        
-        // Simulate window share
-        let windowCaptureResult = captureAndAnalyze(
-            mode: mode,
-            captureType: "window_share",
-            window: window
-        )
-        modeResults.append(windowCaptureResult)
-        
-        // Simulate full-screen share
-        let fullScreenCaptureResult = captureAndAnalyze(
-            mode: mode,
-            captureType: "full_screen_share",
-            window: window
-        )
-        modeResults.append(fullScreenCaptureResult)
+        // For Mode B, test each protection level separately
+        if mode == .modeB {
+            for protectionLevel in ProtectionLevel.allCases {
+                // Apply the protection level
+                WindowManager.applyWindowProtection(window, level: protectionLevel)
+                
+                // Wait briefly for the protection to be applied
+                Thread.sleep(forTimeInterval: 0.2)
+                
+                // Test with each capture type
+                let tabCaptureResult = captureAndAnalyze(
+                    mode: mode,
+                    protectionLevel: protectionLevel,
+                    captureType: "tab_share",
+                    window: window
+                )
+                modeResults.append(tabCaptureResult)
+                
+                let windowCaptureResult = captureAndAnalyze(
+                    mode: mode,
+                    protectionLevel: protectionLevel,
+                    captureType: "window_share",
+                    window: window
+                )
+                modeResults.append(windowCaptureResult)
+                
+                let fullScreenCaptureResult = captureAndAnalyze(
+                    mode: mode,
+                    protectionLevel: protectionLevel,
+                    captureType: "full_screen_share",
+                    window: window
+                )
+                modeResults.append(fullScreenCaptureResult)
+            }
+        } else {
+            // For Modes A and C, use standard testing
+            let tabCaptureResult = captureAndAnalyze(
+                mode: mode,
+                captureType: "tab_share",
+                window: window
+            )
+            modeResults.append(tabCaptureResult)
+            
+            let windowCaptureResult = captureAndAnalyze(
+                mode: mode,
+                captureType: "window_share",
+                window: window
+            )
+            modeResults.append(windowCaptureResult)
+            
+            let fullScreenCaptureResult = captureAndAnalyze(
+                mode: mode,
+                captureType: "full_screen_share",
+                window: window
+            )
+            modeResults.append(fullScreenCaptureResult)
+        }
         
         return modeResults
     }
@@ -78,11 +112,13 @@ class CaptureTestHarness {
     /// Capture window and analyze if content is visible
     private func captureAndAnalyze(
         mode: ProtectionMode,
+        protectionLevel: ProtectionLevel? = nil,
         captureType: String,
         window: NSWindow
     ) -> CaptureTestResult {
         let timestamp = ISO8601DateFormatter().string(from: Date())
-        let filename = "mode\(mode.rawValue.uppercased())_\(captureType)_\(timestamp.replacingOccurrences(of: ":", with: "-")).png"
+        let levelSuffix = protectionLevel != nil ? "_\(protectionLevel!.displayName)" : ""
+        let filename = "mode\(mode.rawValue.uppercased())\(levelSuffix)_\(captureType)_\(timestamp.replacingOccurrences(of: ":", with: "-")).png"
         
         // Capture the window
         var capturedImage: NSImage?
@@ -109,7 +145,7 @@ class CaptureTestHarness {
         
         return CaptureTestResult(
             mode: mode.rawValue,
-            protection: mode.isProtected ? "protected" : "unprotected",
+            protection: protectionLevel != nil ? protectionLevel!.displayName : (mode.isProtected ? "protected" : "unprotected"),
             captureType: captureType,
             contentVisible: contentVisible,
             screenshot: filename,
